@@ -17,10 +17,17 @@ import { User } from "./types/user";
 export type GalleryProps = {
   users: User[];
 };
+
+export type FilterProps = {
+  field?: string;
+  direction?: string;
+};
+
 const Gallery = ({ users }: GalleryProps) => {
   const [usersList, setUsersList] = useState(users);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterProps | null>(null);
 
   const handleModalOpen = (id: number) => {
     const user = usersList.find((item) => item.id === id) || null;
@@ -36,11 +43,38 @@ const Gallery = ({ users }: GalleryProps) => {
     setIsModalOpen(false);
   };
 
+  const handleFilterChange = (filters: FilterProps) => {
+    setFilters(filters);
+    setUsersList(sortByField(users, filters));
+  };
+
+  const sortByField = (data: User[], filter: FilterProps) => {
+    if (!filter.field || !filter.direction) {
+      return [...data]; // Return a copy of the original array
+    }
+
+    const direction = filter.direction === "ascending" ? 1 : -1;
+    const getField = (user: User) => user[filter.field as keyof User];
+
+    return data.sort((a, b) => {
+      const fieldA = getField(a);
+      const fieldB = getField(b);
+
+      if (typeof fieldA === "object" && typeof fieldB === "object") {
+        return (
+          direction * (fieldA as any).name.localeCompare((fieldB as any).name)
+        );
+      }
+
+      return direction * String(fieldA).localeCompare(String(fieldB));
+    });
+  };
+
   return (
     <div className="user-gallery">
       <div className="heading">
         <h1 className="title">Users</h1>
-        <Controls />
+        <Controls onFilterChange={handleFilterChange} filters={filters} />
       </div>
       <div className="items">
         {usersList.map((user, index) => (
